@@ -16,7 +16,8 @@ namespace DemoPipeline.Tests
             int result = Program.Add(x, y);
 
             // Assert
-            Assert.Equals(5, result);
+            Assert.That(result, Is.EqualTo(5));
+
         }
 
         [Test]
