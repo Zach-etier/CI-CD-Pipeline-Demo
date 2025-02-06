@@ -2,7 +2,7 @@ name: CI/CD Pipeline Demo
 
 on:
   push:
-    branches: [ main ]
+    branches: ['feature/*']
   pull_request:
     types: [opened, synchronize, reopened]
 
@@ -85,8 +85,6 @@ jobs:
         shell: powershell
         run: dotnet build --no-restore --configuration Release
 
-      # Optional coverage test, so Sonar can show coverage data
-      # If you don't want to test again, remove the block or keep a minimal test
       - name: Test (Sonar coverage)
         shell: powershell
         run: dotnet test --no-build --configuration Release `
@@ -101,3 +99,21 @@ jobs:
         run: |
           .\.sonar\scanner\dotnet-sonarscanner end /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
           Write-Host "SonarQube Analysis completed"
+
+  create-pr:
+    needs: build-test-analyze
+    if: success()
+    runs-on: windows-latest
+    steps:
+      - name: Check out
+        uses: actions/checkout@v2
+
+      - name: Create/Update Pull Request
+        uses: peter-evans/create-pull-request@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          base: main
+          head: ${{ github.ref_name }}
+          title: "Auto PR from feature branch: ${{ github.ref_name }}"
+          body: "This PR was automatically created after successful CI steps."
+          reviewers: "octocat"
