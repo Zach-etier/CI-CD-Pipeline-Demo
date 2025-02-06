@@ -6,7 +6,7 @@ namespace DemoPipeline.App
     {
         public static void Main(string[] args)
         {
-            Console.WriteLine("Demo Pipeline App");
+            Console.WriteLine(Add(1,5));
         }
 
         // Example math function
