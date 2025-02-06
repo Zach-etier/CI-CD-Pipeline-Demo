@@ -1,9 +1,9 @@
 name: CI/CD Pipeline Demo
 
 on:
-  push:
-    branches: ['feature/*']
+  # Run only when a PR targets 'main'.
   pull_request:
+    branches: [ main ]
     types: [opened, synchronize, reopened]
 
 jobs:
@@ -16,14 +16,14 @@ jobs:
         with:
           fetch-depth: 0
 
-      # 2) Set up Java for Sonar Scanner
+      # 2) Set up Java (Sonar Scanner needs Java)
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           java-version: 17
           distribution: zulu
 
-      # 3) Set up .NET
+      # 3) Set up .NET SDK (change version if you need older .NET)
       - name: Setup .NET
         uses: actions/setup-dotnet@v2
         with:
@@ -33,17 +33,17 @@ jobs:
       - name: Restore
         run: dotnet restore
 
-      # 5) Early Build
+      # 5) Early Build (fail fast if it doesn't compile)
       - name: Build (Early)
         run: dotnet build --no-restore --configuration Release
 
-      # 6) Early Test (Fail early if tests fail)
+      # 6) Early Test (fail early if tests fail)
       - name: Test (Early)
         run: dotnet test --no-build --configuration Release
 
-      # -- IF we reach here, it means early build & test passed. --
+      # -- IF we reach here, it means the project builds and tests pass --
 
-      # 7) Cache SonarQube dependencies/scanner (optional optimization)
+      # 7) Cache SonarQube packages (optional optimization)
       - name: Cache SonarQube packages
         uses: actions/cache@v4
         with:
@@ -99,21 +99,3 @@ jobs:
         run: |
           .\.sonar\scanner\dotnet-sonarscanner end /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
           Write-Host "SonarQube Analysis completed"
-
-  create-pr:
-    needs: build-test-analyze
-    if: success()
-    runs-on: windows-latest
-    steps:
-      - name: Check out
-        uses: actions/checkout@v2
-
-      - name: Create/Update Pull Request
-        uses: peter-evans/create-pull-request@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          base: main
-          head: ${{ github.ref_name }}
-          title: "Auto PR from feature branch: ${{ github.ref_name }}"
-          body: "This PR was automatically created after successful CI steps."
-          reviewers: "octocat"
